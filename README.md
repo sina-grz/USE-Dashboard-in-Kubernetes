@@ -1,4 +1,4 @@
-# Kubernetes Pod and Node Resource Dashboard
+# Kubernetes Pod & Host Node Resource (USE Dahboard)
 
 Visualize utilization, saturation, and errors for Kubernetes pod workloads and their underlying nodes.
 

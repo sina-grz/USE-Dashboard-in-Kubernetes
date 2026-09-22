@@ -1,0 +1,2037 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "description": "Correlates pod resource usage with its current host node. Resolves the node_exporter target separately from the Kubernetes node name. Pod device IOPS and PVC capacity are independent selections; no PVC-to-physical-disk mapping is assumed for LocalPV LVM.",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": 1746,
+  "links": [],
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "panels": [],
+      "title": "Section 1: Pod Resource and Host Pressure Overview",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "description": "Left: pod CPU cores and sum of configured container limits (not a complete pod limit if some containers are unlimited). Right: host CPU busy percentage, a utilization indicator, not proof of CPU saturation. See node iowait/steal below. Duplicate scrape series are collapsed per container before summing.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "CPU cores",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "A"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "blue",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 15
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "red",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "dash": [
+                    4,
+                    4
+                  ],
+                  "fill": "dash"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "C"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "max",
+                "value": 100
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              },
+              {
+                "id": "custom.axisLabel",
+                "value": "Host CPU busy %"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "orange",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 1
+      },
+      "id": 2,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max",
+            "mean"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "11.6.0",
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "sum(max by (container) (rate(container_cpu_usage_seconds_total{namespace=~`${namespace:regex}`, pod=~`${pod:regex}`, container!=\"\", container!=\"POD\"}[$__rate_interval])))",
+          "legendFormat": "Pod CPU usage (cores)",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "editorMode": "code",
+          "expr": "sum(max by (container) (kube_pod_container_resource_limits{namespace=~`${namespace:regex}`, pod=~`${pod:regex}`, resource=\"cpu\"}))",
+          "legendFormat": "Sum of configured CPU limits (cores)",
+          "range": true,
+          "refId": "B"
+        },
+        {
+          "editorMode": "code",
+          "expr": "100 * (1 - avg(rate(node_cpu_seconds_total{mode=\"idle\", instance=~`${node_instance:regex}`, instance!=\"\", job=~`${node_job:regex}`}[$__rate_interval])))",
+          "legendFormat": "Host CPU busy %",
+          "range": true,
+          "refId": "C"
+        }
+      ],
+      "title": "Pod CPU Usage and Configured Limits | Host CPU Busy",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "description": "Pod working set and sum of configured memory limits on the left. Host memory unavailable % = 100 * (1 - MemAvailable/MemTotal) on the right; this is not node working set. A red time-based area appears only when that percentage exceeds 95%. It is a warning signal, not proof of an OOM or memory throttling. Missing telemetry remains missing.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "bytes"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "A"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "blue",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 15
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "purple",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "dash": [
+                    4,
+                    4
+                  ],
+                  "fill": "dash"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "C"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "max",
+                "value": 100
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              },
+              {
+                "id": "custom.axisLabel",
+                "value": "Host memory %"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "orange",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "D"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "max",
+                "value": 100
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              },
+              {
+                "id": "custom.axisLabel",
+                "value": "Host memory %"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "red",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 0
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 25
+              },
+              {
+                "id": "custom.lineInterpolation",
+                "value": "stepAfter"
+              },
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "legend": true,
+                  "tooltip": true,
+                  "viz": false
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 1
+      },
+      "id": 3,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max",
+            "mean"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "11.6.0",
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "sum(max by (container) (container_memory_working_set_bytes{namespace=~`${namespace:regex}`, pod=~`${pod:regex}`, container!=\"\", container!=\"POD\"}))",
+          "legendFormat": "Pod memory working set",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "editorMode": "code",
+          "expr": "sum(max by (container) (kube_pod_container_resource_limits{namespace=~`${namespace:regex}`, pod=~`${pod:regex}`, resource=\"memory\"}))",
+          "legendFormat": "Sum of configured memory limits",
+          "range": true,
+          "refId": "B"
+        },
+        {
+          "editorMode": "code",
+          "expr": "100 * (1 - max(node_memory_MemAvailable_bytes{instance=~`${node_instance:regex}`, instance!=\"\", job=~`${node_job:regex}`}) / max(node_memory_MemTotal_bytes{instance=~`${node_instance:regex}`, instance!=\"\", job=~`${node_job:regex}`}))",
+          "legendFormat": "Host memory unavailable %",
+          "range": true,
+          "refId": "C"
+        },
+        {
+          "editorMode": "code",
+          "expr": "100 * ((1 - max(node_memory_MemAvailable_bytes{instance=~`${node_instance:regex}`, instance!=\"\", job=~`${node_job:regex}`}) / max(node_memory_MemTotal_bytes{instance=~`${node_instance:regex}`, instance!=\"\", job=~`${node_job:regex}`})) > bool 0.95)",
+          "legendFormat": "Host memory >95% highlight",
+          "range": true,
+          "refId": "D"
+        }
+      ],
+      "title": "Pod Memory | Host Memory >95% Highlight",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "description": "Pod network bytes/s on the left. The red area is a binary host-network warning (0/1), not packet rate: any receive/transmit drop or error over the rate interval fills the graph height. Actual per-interface rates are in Section 2. Pod samples are collapsed per interface to avoid counting shared pod networking once per container; host-network pods may report shared host traffic.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "Bps"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "A"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "green",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "blue",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "C"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "short"
+              },
+              {
+                "id": "max",
+                "value": 1
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              },
+              {
+                "id": "custom.axisLabel",
+                "value": "Host drops/errors present (0/1)"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "red",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 0
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 25
+              },
+              {
+                "id": "custom.lineInterpolation",
+                "value": "stepAfter"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 10
+      },
+      "id": 4,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max",
+            "mean"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "11.6.0",
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "sum(max by (interface) (rate(container_network_receive_bytes_total{namespace=~`${namespace:regex}`, pod=~`${pod:regex}`, interface!=\"lo\"}[$__rate_interval])))",
+          "legendFormat": "Pod RX bandwidth",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "editorMode": "code",
+          "expr": "sum(max by (interface) (rate(container_network_transmit_bytes_total{namespace=~`${namespace:regex}`, pod=~`${pod:regex}`, interface!=\"lo\"}[$__rate_interval])))",
+          "legendFormat": "Pod TX bandwidth",
+          "range": true,
+          "refId": "B"
+        },
+        {
+          "editorMode": "code",
+          "expr": "(sum(rate(node_network_receive_drop_total{instance=~`${node_instance:regex}`, instance!=\"\", job=~`${node_job:regex}`, device!=\"lo\"}[$__rate_interval])) + sum(rate(node_network_transmit_drop_total{instance=~`${node_instance:regex}`, instance!=\"\", job=~`${node_job:regex}`, device!=\"lo\"}[$__rate_interval])) + sum(rate(node_network_receive_errs_total{instance=~`${node_instance:regex}`, instance!=\"\", job=~`${node_job:regex}`, device!=\"lo\"}[$__rate_interval])) + sum(rate(node_network_transmit_errs_total{instance=~`${node_instance:regex}`, instance!=\"\", job=~`${node_job:regex}`, device!=\"lo\"}[$__rate_interval]))) > bool 0",
+          "legendFormat": "Host drops/errors present (0/1)",
+          "range": true,
+          "refId": "C"
+        }
+      ],
+      "title": "Pod Network RX/TX | Host Drops or Errors Highlight",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "description": "Solid lines: pod read/write totals across devices reported for application containers. Dashed lines: selected pod_device only, in the same IOPS units. Right: selected PVC capacity used %, NOT disk busy %. Device selection is manual and independent of PVC selection; cAdvisor device labels alone do not prove PVC identity. Parent/POD cgroups are excluded, duplicate scrape series collapsed per container/device. Totals can still include multiple block layers if the runtime exports them and are not physical-disk totals. Empty IOPS means unavailable counters, not zero activity.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Operations/s",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "iops"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "A"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "green",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "blue",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "C"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "max",
+                "value": 100
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              },
+              {
+                "id": "custom.axisLabel",
+                "value": "PVC capacity used %"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "yellow",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "D"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "orange",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 2
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "dash": [
+                    4,
+                    4
+                  ],
+                  "fill": "dash"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "E"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "purple",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 2
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "dash": [
+                    4,
+                    4
+                  ],
+                  "fill": "dash"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 10
+      },
+      "id": 5,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max",
+            "mean"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "11.6.0",
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "sum(max by (container, device) (rate(container_fs_reads_total{namespace=~`${namespace:regex}`, pod=~`${pod:regex}`, container!=\"\", container!=\"POD\", device!=\"\"}[$__rate_interval])))",
+          "legendFormat": "Pod total read IOPS (reported devices)",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "editorMode": "code",
+          "expr": "sum(max by (container, device) (rate(container_fs_writes_total{namespace=~`${namespace:regex}`, pod=~`${pod:regex}`, container!=\"\", container!=\"POD\", device!=\"\"}[$__rate_interval])))",
+          "legendFormat": "Pod total write IOPS (reported devices)",
+          "range": true,
+          "refId": "B"
+        },
+        {
+          "editorMode": "code",
+          "expr": "100 * max(kubelet_volume_stats_used_bytes{namespace=~`${namespace:regex}`, persistentvolumeclaim=~`${pvc:regex}`, persistentvolumeclaim!=\"\"}) / (max(kubelet_volume_stats_capacity_bytes{namespace=~`${namespace:regex}`, persistentvolumeclaim=~`${pvc:regex}`, persistentvolumeclaim!=\"\"}) > 0)",
+          "legendFormat": "PVC $pvc capacity used %",
+          "range": true,
+          "refId": "C"
+        },
+        {
+          "editorMode": "code",
+          "expr": "sum by (device) (max by (container, device) (rate(container_fs_reads_total{namespace=~`${namespace:regex}`, pod=~`${pod:regex}`, container!=\"\", container!=\"POD\", device=~`${pod_device:regex}`, device!=\"\"}[$__rate_interval])))",
+          "legendFormat": "Selected device read IOPS - {{device}}",
+          "range": true,
+          "refId": "D"
+        },
+        {
+          "editorMode": "code",
+          "expr": "sum by (device) (max by (container, device) (rate(container_fs_writes_total{namespace=~`${namespace:regex}`, pod=~`${pod:regex}`, container!=\"\", container!=\"POD\", device=~`${pod_device:regex}`, device!=\"\"}[$__rate_interval])))",
+          "legendFormat": "Selected device write IOPS - {{device}}",
+          "range": true,
+          "refId": "E"
+        }
+      ],
+      "title": "Pod IOPS: Total and Selected Device | PVC Capacity",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 19
+      },
+      "id": 6,
+      "panels": [],
+      "title": "Section 2: Host Node Health ($node | $node_instance)",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "description": "Selected node_exporter instance/job only. CPU busy includes non-idle modes including iowait. IOWait and steal are diagnostic signals, not additive to busy %. RAM unavailable % uses MemAvailable. CPU busy alone does not measure runnable-queue saturation; no missing series is replaced with zero.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "max": 100,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "A"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "orange",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "purple",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "C"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "red",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "D"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "yellow",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 8,
+        "x": 0,
+        "y": 20
+      },
+      "id": 7,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max",
+            "mean"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "11.6.0",
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "100 * (1 - avg(rate(node_cpu_seconds_total{mode=\"idle\", instance=~`${node_instance:regex}`, instance!=\"\", job=~`${node_job:regex}`}[$__rate_interval])))",
+          "legendFormat": "Node CPU busy %",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "editorMode": "code",
+          "expr": "100 * (1 - max(node_memory_MemAvailable_bytes{instance=~`${node_instance:regex}`, instance!=\"\", job=~`${node_job:regex}`}) / max(node_memory_MemTotal_bytes{instance=~`${node_instance:regex}`, instance!=\"\", job=~`${node_job:regex}`}))",
+          "legendFormat": "Node RAM unavailable %",
+          "range": true,
+          "refId": "B"
+        },
+        {
+          "editorMode": "code",
+          "expr": "100 * avg(rate(node_cpu_seconds_total{mode=\"iowait\", instance=~`${node_instance:regex}`, instance!=\"\", job=~`${node_job:regex}`}[$__rate_interval]))",
+          "legendFormat": "Node CPU iowait %",
+          "range": true,
+          "refId": "C"
+        },
+        {
+          "editorMode": "code",
+          "expr": "100 * avg(rate(node_cpu_seconds_total{mode=\"steal\", instance=~`${node_instance:regex}`, instance!=\"\", job=~`${node_job:regex}`}[$__rate_interval]))",
+          "legendFormat": "Node CPU steal %",
+          "range": true,
+          "refId": "D"
+        }
+      ],
+      "title": "Host CPU, RAM, IOWait and Steal",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "description": "Per-device IOPS and busy time for the independently selected node devices. Busy % = rate(node_disk_io_time_seconds_total) * 100. It is not a reliable saturation ceiling for parallel NVMe/RAID devices. Logical and physical devices may represent the same I/O at different layers; they are never summed together here. No claim is made that these devices back the selected PVC.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "iops"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "C"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "max",
+                "value": 100
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              },
+              {
+                "id": "custom.axisLabel",
+                "value": "Device busy %"
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "dash": [
+                    4,
+                    4
+                  ],
+                  "fill": "dash"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 8,
+        "x": 8,
+        "y": 20
+      },
+      "id": 8,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max",
+            "mean"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "11.6.0",
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "max by (device) (rate(node_disk_reads_completed_total{instance=~`${node_instance:regex}`, instance!=\"\", job=~`${node_job:regex}`, device=~`${node_disk:regex}`}[$__rate_interval]))",
+          "legendFormat": "Read IOPS - {{device}}",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "editorMode": "code",
+          "expr": "max by (device) (rate(node_disk_writes_completed_total{instance=~`${node_instance:regex}`, instance!=\"\", job=~`${node_job:regex}`, device=~`${node_disk:regex}`}[$__rate_interval]))",
+          "legendFormat": "Write IOPS - {{device}}",
+          "range": true,
+          "refId": "B"
+        },
+        {
+          "editorMode": "code",
+          "expr": "100 * max by (device) (rate(node_disk_io_time_seconds_total{instance=~`${node_instance:regex}`, instance!=\"\", job=~`${node_job:regex}`, device=~`${node_disk:regex}`}[$__rate_interval]))",
+          "legendFormat": "Device busy % - {{device}}",
+          "range": true,
+          "refId": "C"
+        }
+      ],
+      "title": "Host Device Read/Write IOPS and Busy %",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "description": "Per-interface receive/transmit drops and errors per second on the selected exporter target/job, excluding loopback. Includes virtual interfaces. Non-zero rates drive the red pod-network overlay; they indicate host-interface problems but do not prove the selected pod's packets were affected.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "pps"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 8,
+        "x": 16,
+        "y": 20
+      },
+      "id": 9,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max",
+            "mean"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "11.6.0",
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "max by (device) (rate(node_network_receive_drop_total{instance=~`${node_instance:regex}`, instance!=\"\", job=~`${node_job:regex}`, device!=\"lo\"}[$__rate_interval]))",
+          "legendFormat": "RX drops - {{device}}",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "editorMode": "code",
+          "expr": "max by (device) (rate(node_network_transmit_drop_total{instance=~`${node_instance:regex}`, instance!=\"\", job=~`${node_job:regex}`, device!=\"lo\"}[$__rate_interval]))",
+          "legendFormat": "TX drops - {{device}}",
+          "range": true,
+          "refId": "B"
+        },
+        {
+          "editorMode": "code",
+          "expr": "max by (device) (rate(node_network_receive_errs_total{instance=~`${node_instance:regex}`, instance!=\"\", job=~`${node_job:regex}`, device!=\"lo\"}[$__rate_interval]))",
+          "legendFormat": "RX errors - {{device}}",
+          "range": true,
+          "refId": "C"
+        },
+        {
+          "editorMode": "code",
+          "expr": "max by (device) (rate(node_network_transmit_errs_total{instance=~`${node_instance:regex}`, instance!=\"\", job=~`${node_job:regex}`, device!=\"lo\"}[$__rate_interval]))",
+          "legendFormat": "TX errors - {{device}}",
+          "range": true,
+          "refId": "D"
+        }
+      ],
+      "title": "Host Interface RX/TX Drops and Errors",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 29
+      },
+      "id": 10,
+      "panels": [],
+      "title": "Section 3: OpenEBS LocalPV LVM ($node | VG: $vg | PVC: $pvc)",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "description": "Measured node-exporter device-mapper operations matched to OpenEBS lvm_lv_total_size_bytes membership, following the upstream LVM dashboard approach. Solid: all reported non-thin-pool LVs in the automatically resolved VG. Dashed: the selected PVC's CSI logical volume only. Both exporters are scoped to the same node before matching devices; duplicate membership/scrapes are collapsed. These are logical-volume-layer IOPS, not physical-drive totals. Requires CSI volume-handle labels, scraped OpenEBS LV metrics and node-exporter counters for the matching dm devices. Missing matches remain gaps; partially exported devices produce partial VG totals.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Operations/s",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "iops"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "A"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "green",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "blue",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "C"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "orange",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 2
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "dash": [
+                    4,
+                    4
+                  ],
+                  "fill": "dash"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "D"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "purple",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 2
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "dash": [
+                    4,
+                    4
+                  ],
+                  "fill": "dash"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 30
+      },
+      "id": 11,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max",
+            "mean"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "11.6.0",
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "sum(max by (device) (rate(node_disk_reads_completed_total{instance=~`${node_instance:regex}`, instance!=\"\", job=~`${node_job:regex}`, device=~\"dm-[0-9]+\"}[$__rate_interval])) and on (device) group by (device) (lvm_lv_total_size_bytes{instance=~`${lvm_instance:regex}`, instance!=\"\", vg=~`${vg:regex}`, vg!=\"\", device=~\"dm-[0-9]+\", segtype!=\"thin-pool\"}))",
+          "legendFormat": "VG $vg total read IOPS",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "editorMode": "code",
+          "expr": "sum(max by (device) (rate(node_disk_writes_completed_total{instance=~`${node_instance:regex}`, instance!=\"\", job=~`${node_job:regex}`, device=~\"dm-[0-9]+\"}[$__rate_interval])) and on (device) group by (device) (lvm_lv_total_size_bytes{instance=~`${lvm_instance:regex}`, instance!=\"\", vg=~`${vg:regex}`, vg!=\"\", device=~\"dm-[0-9]+\", segtype!=\"thin-pool\"}))",
+          "legendFormat": "VG $vg total write IOPS",
+          "range": true,
+          "refId": "B"
+        },
+        {
+          "editorMode": "code",
+          "expr": "sum(max by (device) (rate(node_disk_reads_completed_total{instance=~`${node_instance:regex}`, instance!=\"\", job=~`${node_job:regex}`, device=~\"dm-[0-9]+\"}[$__rate_interval])) and on (device) group by (device) (lvm_lv_total_size_bytes{instance=~`${lvm_instance:regex}`, instance!=\"\", vg=~`${vg:regex}`, vg!=\"\", name=~`${lvm_lv:regex}`, name!=\"\", device=~\"dm-[0-9]+\", segtype!=\"thin-pool\"}))",
+          "legendFormat": "PVC $pvc read IOPS",
+          "range": true,
+          "refId": "C"
+        },
+        {
+          "editorMode": "code",
+          "expr": "sum(max by (device) (rate(node_disk_writes_completed_total{instance=~`${node_instance:regex}`, instance!=\"\", job=~`${node_job:regex}`, device=~\"dm-[0-9]+\"}[$__rate_interval])) and on (device) group by (device) (lvm_lv_total_size_bytes{instance=~`${lvm_instance:regex}`, instance!=\"\", vg=~`${vg:regex}`, vg!=\"\", name=~`${lvm_lv:regex}`, name!=\"\", device=~\"dm-[0-9]+\", segtype!=\"thin-pool\"}))",
+          "legendFormat": "PVC $pvc write IOPS",
+          "range": true,
+          "refId": "D"
+        }
+      ],
+      "title": "Volume Group IOPS vs Selected PVC ($vg)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "description": "Read/write bytes per second summed across the reported non-thin-pool logical volumes in the selected PVC's VG. Uses OpenEBS LV membership and the same node-scoped device matching as the IOPS panel. Independent of the manual Pod I/O Device and Node Disk Devices selectors. This is logical-volume throughput, not backing-drive throughput; unavailable device counters are not replaced with zero.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "Bps"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "A"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "green",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "blue",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 30
+      },
+      "id": 12,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max",
+            "mean"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "11.6.0",
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "sum(max by (device) (rate(node_disk_read_bytes_total{instance=~`${node_instance:regex}`, instance!=\"\", job=~`${node_job:regex}`, device=~\"dm-[0-9]+\"}[$__rate_interval])) and on (device) group by (device) (lvm_lv_total_size_bytes{instance=~`${lvm_instance:regex}`, instance!=\"\", vg=~`${vg:regex}`, vg!=\"\", device=~\"dm-[0-9]+\", segtype!=\"thin-pool\"}))",
+          "legendFormat": "VG $vg read throughput",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "editorMode": "code",
+          "expr": "sum(max by (device) (rate(node_disk_written_bytes_total{instance=~`${node_instance:regex}`, instance!=\"\", job=~`${node_job:regex}`, device=~\"dm-[0-9]+\"}[$__rate_interval])) and on (device) group by (device) (lvm_lv_total_size_bytes{instance=~`${lvm_instance:regex}`, instance!=\"\", vg=~`${vg:regex}`, vg!=\"\", device=~\"dm-[0-9]+\", segtype!=\"thin-pool\"}))",
+          "legendFormat": "VG $vg write throughput",
+          "range": true,
+          "refId": "B"
+        }
+      ],
+      "title": "Volume Group Read/Write Throughput ($vg)",
+      "type": "timeseries"
+    }
+  ],
+  "preload": false,
+  "refresh": "30s",
+  "schemaVersion": 41,
+  "tags": [
+    "kubernetes",
+    "saturation",
+    "node",
+    "pod",
+    "openebs",
+    "lvm"
+  ],
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "text": "production--victoria-metrics",
+          "value": "8EFPOGmIz"
+        },
+        "label": "Data Source",
+        "name": "datasource",
+        "options": [],
+        "query": "prometheus",
+        "refresh": 1,
+        "type": "datasource"
+      },
+      {
+        "current": {
+          "text": "brain",
+          "value": "brain"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "label_values(kube_pod_info, namespace)",
+        "includeAll": false,
+        "label": "Namespace",
+        "name": "namespace",
+        "options": [],
+        "query": "label_values(kube_pod_info, namespace)",
+        "refresh": 2,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {
+          "text": "scylla-app-event-attributor-brain-rack-2",
+          "value": "scylla-app-event-attributor-brain-rack-2"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "label_values(kube_pod_info{namespace=~`${namespace:regex}`}, pod)",
+        "includeAll": false,
+        "label": "Pod",
+        "name": "pod",
+        "options": [],
+        "query": "label_values(kube_pod_info{namespace=~`${namespace:regex}`}, pod)",
+        "refresh": 2,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {
+          "text": "g9-88core-1179",
+          "value": "g9-88core-1179"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "query_result(count by (node) (kube_pod_info{namespace=~`${namespace:regex}`, pod=~`${pod:regex}`, node!=\"\"}))",
+        "description": "Node hosting the selected pod now. Historical samples are not remapped if a same-named pod moved nodes.",
+        "includeAll": false,
+        "label": "Host Node",
+        "name": "node",
+        "options": [],
+        "query": "query_result(count by (node) (kube_pod_info{namespace=~`${namespace:regex}`, pod=~`${pod:regex}`, node!=\"\"}))",
+        "refresh": 2,
+        "regex": "/node=\"([^\"]+)\"/",
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {
+          "text": "172.16.0.1",
+          "value": "172.16.0.1"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "query_result(count by (host_ip) (kube_pod_info{namespace=~`${namespace:regex}`, pod=~`${pod:regex}`, node=~`${node:regex}`, host_ip!=\"\"}))",
+        "hide": 2,
+        "includeAll": false,
+        "label": "Host IP",
+        "name": "node_ip",
+        "options": [],
+        "query": "query_result(count by (host_ip) (kube_pod_info{namespace=~`${namespace:regex}`, pod=~`${pod:regex}`, node=~`${node:regex}`, host_ip!=\"\"}))",
+        "refresh": 2,
+        "regex": "/host_ip=\"([^\"]+)\"/",
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {
+          "text": "172.16.0.1:9100",
+          "value": "172.16.0.1:9100"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "query_result(count by (instance) (node_uname_info{node=~`${node:regex}`, node!=\"\"} or node_uname_info{nodename=~`${node:regex}`, nodename!=\"\"} or node_cpu_seconds_total{mode=\"idle\", node=~`${node:regex}`, node!=\"\"} or node_cpu_seconds_total{mode=\"idle\", instance=~`(${node:regex}|${node_ip:regex}|\\[${node_ip:regex}\\])(:[0-9]+)?`}))",
+        "description": "Matches an explicit node label, uname nodename, or exact node-name/host-IP endpoint (optional port, including bracketed IPv6). Select one if multiple targets are discovered. An empty list means the scrape labels need inspection; it never falls back to all nodes.",
+        "includeAll": false,
+        "label": "Node Exporter Target",
+        "name": "node_instance",
+        "options": [],
+        "query": "query_result(count by (instance) (node_uname_info{node=~`${node:regex}`, node!=\"\"} or node_uname_info{nodename=~`${node:regex}`, nodename!=\"\"} or node_cpu_seconds_total{mode=\"idle\", node=~`${node:regex}`, node!=\"\"} or node_cpu_seconds_total{mode=\"idle\", instance=~`(${node:regex}|${node_ip:regex}|\\[${node_ip:regex}\\])(:[0-9]+)?`}))",
+        "refresh": 2,
+        "regex": "/instance=\"([^\"]+)\"/",
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {
+          "text": "node-exporter",
+          "value": "node-exporter"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "label_values(node_cpu_seconds_total{mode=\"idle\", instance=~`${node_instance:regex}`, instance!=\"\"}, job)",
+        "description": "Select one scrape job to avoid adding duplicate node_exporter scrapes together.",
+        "includeAll": false,
+        "label": "Node Exporter Job",
+        "name": "node_job",
+        "options": [],
+        "query": "label_values(node_cpu_seconds_total{mode=\"idle\", instance=~`${node_instance:regex}`, instance!=\"\"}, job)",
+        "refresh": 2,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {
+          "text": "data-scylla-app-event-attributor-brain-rack-2",
+          "value": "data-scylla-app-event-attributor-brain-rack-2"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "label_values(kube_pod_spec_volumes_persistentvolumeclaims_info{namespace=~`${namespace:regex}`, pod=~`${pod:regex}`}, persistentvolumeclaim)",
+        "description": "PVCs mounted by the selected pod. Controls capacity only until a verified PVC-to-LV/device mapping is available. Empty is normal for pods without PVCs.",
+        "includeAll": false,
+        "label": "PVC (capacity)",
+        "name": "pvc",
+        "options": [],
+        "query": "label_values(kube_pod_spec_volumes_persistentvolumeclaims_info{namespace=~`${namespace:regex}`, pod=~`${pod:regex}`}, persistentvolumeclaim)",
+        "refresh": 2,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {
+          "text": "/dev/sda",
+          "value": "/dev/sda"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "query_result(count by (device) ({__name__=~\"container_fs_(reads|writes)_total\", namespace=~`${namespace:regex}`, pod=~`${pod:regex}`, container!=\"\", container!=\"POD\", device!=\"\"}))",
+        "description": "A device reported by cAdvisor for this pod, not an automatically resolved PVC. Select the PVC's logical device only after verifying the relationship. Changing PVC does not change this selection.",
+        "includeAll": false,
+        "label": "Pod I/O Device (manual)",
+        "name": "pod_device",
+        "options": [],
+        "query": "query_result(count by (device) ({__name__=~\"container_fs_(reads|writes)_total\", namespace=~`${namespace:regex}`, pod=~`${pod:regex}`, container!=\"\", container!=\"POD\", device!=\"\"}))",
+        "refresh": 2,
+        "regex": "/device=\"([^\"]+)\"/",
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "allValue": ".*",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "label_values(node_disk_io_time_seconds_total{instance=~`${node_instance:regex}`, instance!=\"\", job=~`${node_job:regex}`}, device)",
+        "description": "Independent node-exporter devices, including logical devices if exported. All shows separate series, not a sum across physical disks and LVM layers.",
+        "includeAll": true,
+        "label": "Node Disk Devices",
+        "multi": true,
+        "name": "node_disk",
+        "options": [],
+        "query": "label_values(node_disk_io_time_seconds_total{instance=~`${node_instance:regex}`, instance!=\"\", job=~`${node_job:regex}`}, device)",
+        "refresh": 2,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {
+          "text": "pvc-37f845bf-668e-4c5b-8e4a-33f5b24f48f5",
+          "value": "pvc-37f845bf-668e-4c5b-8e4a-33f5b24f48f5"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "query_result(group by (volumename) (kube_persistentvolumeclaim_info{namespace=~`${namespace:regex}`, persistentvolumeclaim=~`${pvc:regex}`, persistentvolumeclaim!=\"\", volumename!=\"\"}))",
+        "hide": 2,
+        "includeAll": false,
+        "label": "LVM PV (auto)",
+        "name": "lvm_pv",
+        "options": [],
+        "query": "query_result(group by (volumename) (kube_persistentvolumeclaim_info{namespace=~`${namespace:regex}`, persistentvolumeclaim=~`${pvc:regex}`, persistentvolumeclaim!=\"\", volumename!=\"\"}))",
+        "refresh": 2,
+        "regex": "/volumename=\"([^\"]+)\"/",
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {
+          "text": "pvc-37f845bf-668e-4c5b-8e4a-33f5b24f48f5",
+          "value": "pvc-37f845bf-668e-4c5b-8e4a-33f5b24f48f5"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "query_result(group by (csi_volume_handle) (kube_persistentvolume_info{persistentvolume=~`${lvm_pv:regex}`, persistentvolume!=\"\", csi_driver=\"local.csi.openebs.io\", csi_volume_handle!=\"\"}))",
+        "description": "OpenEBS LocalPV LVM uses the CSI volume handle as its logical-volume name. No PV-name or device-path guessing.",
+        "hide": 2,
+        "includeAll": false,
+        "label": "LVM Logical Volume (auto)",
+        "name": "lvm_lv",
+        "options": [],
+        "query": "query_result(group by (csi_volume_handle) (kube_persistentvolume_info{persistentvolume=~`${lvm_pv:regex}`, persistentvolume!=\"\", csi_driver=\"local.csi.openebs.io\", csi_volume_handle!=\"\"}))",
+        "refresh": 2,
+        "regex": "/csi_volume_handle=\"([^\"]+)\"/",
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {
+          "text": "172.16.0.1:9500",
+          "value": "172.16.0.1:9500"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "query_result(group by (instance) (lvm_lv_total_size_bytes{name=~`${lvm_lv:regex}`, name!=\"\", node=~`${node:regex}`, node!=\"\", instance!=\"\"} or (group by (instance, namespace, pod) (lvm_lv_total_size_bytes{name=~`${lvm_lv:regex}`, name!=\"\", namespace!=\"\", pod!=\"\", instance!=\"\"}) and on (namespace, pod) group by (namespace, pod) (kube_pod_info{node=~`${node:regex}`, node!=\"\"})) or lvm_lv_total_size_bytes{name=~`${lvm_lv:regex}`, name!=\"\", instance=~`(${node:regex}|${node_ip:regex}|\\[${node_ip:regex}\\])(:[0-9]+)?`, instance!=\"\"}))",
+        "description": "Finds the selected LV's exporter on the pod's node through a node label, exporter pod placement, or an exact node-name/host-IP endpoint. The LVM creation-host label is not used as node identity.",
+        "hide": 2,
+        "includeAll": false,
+        "label": "LVM Exporter (auto)",
+        "name": "lvm_instance",
+        "options": [],
+        "query": "query_result(group by (instance) (lvm_lv_total_size_bytes{name=~`${lvm_lv:regex}`, name!=\"\", node=~`${node:regex}`, node!=\"\", instance!=\"\"} or (group by (instance, namespace, pod) (lvm_lv_total_size_bytes{name=~`${lvm_lv:regex}`, name!=\"\", namespace!=\"\", pod!=\"\", instance!=\"\"}) and on (namespace, pod) group by (namespace, pod) (kube_pod_info{node=~`${node:regex}`, node!=\"\"})) or lvm_lv_total_size_bytes{name=~`${lvm_lv:regex}`, name!=\"\", instance=~`(${node:regex}|${node_ip:regex}|\\[${node_ip:regex}\\])(:[0-9]+)?`, instance!=\"\"}))",
+        "refresh": 2,
+        "regex": "/instance=\"([^\"]+)\"/",
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {
+          "text": "openebs-ssd-brain-scylla",
+          "value": "openebs-ssd-brain-scylla"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "query_result(group by (vg) (lvm_lv_total_size_bytes{instance=~`${lvm_instance:regex}`, instance!=\"\", name=~`${lvm_lv:regex}`, name!=\"\", vg!=\"\"}))",
+        "description": "Automatically follows PVC -> PV -> CSI volume handle -> OpenEBS LV -> VG on the selected node. Empty means the required KSM/LVM metadata is unavailable or the PVC is not LocalPV LVM. No fallback to unrelated VGs.",
+        "includeAll": false,
+        "label": "Volume Group (PVC auto)",
+        "name": "vg",
+        "options": [],
+        "query": "query_result(group by (vg) (lvm_lv_total_size_bytes{instance=~`${lvm_instance:regex}`, instance!=\"\", name=~`${lvm_lv:regex}`, name!=\"\", vg!=\"\"}))",
+        "refresh": 2,
+        "regex": "/vg=\"([^\"]+)\"/",
+        "sort": 1,
+        "type": "query"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-15m",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Kubernetes Pod & Host Node Resource (USE Dahboard)",
+  "uid": "efz0uj604il8gd",
+  "version": 2
+}
